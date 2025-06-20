@@ -1,16 +1,14 @@
 //+------------------------------------------------------------------+
 //|                              smaGUY_Daily_PnL_Calendar_View.mq5  |
 //|                               Daily P&L Calendar View Indicator  |
-//|                                                                  |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2025 SmaGUY"
-#property link      ""
-#property version   "1.30"
+#property version   "1.40"
 #property description "Daily PnL on a monthly calendar view with enhanced features"
 #property indicator_chart_window
 #property indicator_plots 0
 
-//--- Enums for user-friendly inputs
+//--- Enums
 enum ENUM_CALENDAR_POSITION
   {
    POS_TOP_LEFT = 0,      // Top Left
@@ -36,112 +34,81 @@ enum ENUM_MONTH_SELECTION
    MONTH_DECEMBER = 12    // December
   };
 
-enum ENUM_CALENDAR_SIZE
-  {
-   SIZE_NORMAL = 0,       // Normal Size
-   SIZE_COMPACT = 1,      // Compact Size
-   SIZE_TINY = 2          // Tiny Size
-  };
-
 enum ENUM_YEAR_SELECTION
   {
-   YEAR_2020 = 2020,     // 2020
-   YEAR_2021 = 2021,     // 2021
-   YEAR_2022 = 2022,     // 2022
-   YEAR_2023 = 2023,     // 2023
-   YEAR_2024 = 2024,     // 2024
-   YEAR_2025 = 2025,     // 2025
-   YEAR_2026 = 2026,     // 2026
-   YEAR_2027 = 2027,     // 2027
-   YEAR_2028 = 2028,     // 2028
-   YEAR_2029 = 2029,     // 2029
-   YEAR_2030 = 2030,     // 2030
-   YEAR_CURRENT = 0      // Current Year
-  };
-
-enum ENUM_FONT_SELECTION
-  {
-   FONT_ARIAL = 0,       // Arial
-   FONT_CALIBRI = 1,     // Calibri
-   FONT_COURIER = 2,     // Courier
-   FONT_COURIER_NEW = 3, // Courier New
-   FONT_TAHOMA = 4,      // Tahoma
-   FONT_VERDANA = 5      // Verdana
-  };
-
-enum ENUM_DRAW_MODE
-  {
-   DRAW_OVERLAY = 0,     // Draw as Overlay
-   DRAW_BACKGROUND = 1   // Draw as Background
+   YEAR_2020 = 2020, YEAR_2021 = 2021, YEAR_2022 = 2022, YEAR_2023 = 2023,
+   YEAR_2024 = 2024, YEAR_2025 = 2025, YEAR_2026 = 2026, YEAR_2027 = 2027,
+   YEAR_2028 = 2028, YEAR_2029 = 2029, YEAR_2030 = 2030, YEAR_CURRENT = 0
   };
 
 //--- Input parameters
-sinput string  s1 = "=== DISPLAY SETTINGS ===";        // ────────────────────
-input int      FontSize = 8;                            // Font Size (Small for Profit Style)
-input ENUM_FONT_SELECTION FontType = FONT_CALIBRI;     // Font Type
+sinput string  s1 = "=== DISPLAY SETTINGS ===";
 input ENUM_CALENDAR_POSITION CalendarPosition = POS_TOP_LEFT; // Calendar Position
-input ENUM_CALENDAR_SIZE CalendarSize = SIZE_TINY;   // Calendar Size
-input ENUM_DRAW_MODE DrawMode = DRAW_OVERLAY;           // Drawing Mode
-input int      XDistance = 0;                          // Distance from Left/Right Edge
-input int      YDistance = 0;                          // Distance from Top/Bottom Edge
+input int      CellWidth = 35;                          // Cell Width (Height auto-calculated)
+input int      FontSize = 8;                            // Font Size
 
-sinput string  s2 = "=== TIME SETTINGS ===";           // ────────────────────
+sinput string  s2 = "=== TIME SETTINGS ===";
 input ENUM_MONTH_SELECTION MonthToShow = MONTH_CURRENT; // Month to Display
 input ENUM_YEAR_SELECTION YearToShow = YEAR_CURRENT;   // Year to Display
+input bool     ShowWeekends = false;                   // Show Weekend Days
 
-sinput string  s3 = "=== APPEARANCE SETTINGS ===";     // ────────────────────
-input bool     ShowWeekends = false;                   // Show Weekend Days (Auto-adjusts width)
-input bool     ShowCellBorders = false;                // Show Individual Cell Borders
+sinput string  s3 = "=== FEATURES ===";
+input bool     ShowWeekTotals = true;                  // Show Weekly Totals Column
+input bool     ShowMonthTotal = true;                  // Show Month Total in Header
 input bool     ShowDates = false;                      // Show Date Numbers in Cells
 input bool     HighlightCurrentDay = true;             // Highlight Current Day
 input bool     IncludeOpenPnL = true;                  // Include Currently Open P&L
 
-sinput string  s4 = "=== COLORS ===";                  // ────────────────────
-input color    BackgroundColor = C'255,255,255';       // Background Color
-input color    BorderColor = C'100,100,100';           // Main Border Color
-input color    HeaderBackgroundColor = C'200,200,200'; // Header Background Color
-input color    HeaderBorderColor = C'100,100,100';     // Header Border Color
+sinput string  s4 = "=== COLORS ===";
+input color    BackgroundColor = clrWhite;       // Background Color
+input color    BorderColor = clrGray;           // Border Color
+input color    HeaderBgColor = clrLightGray;         // Header Background
 input color    HeaderTextColor = clrBlack;             // Header Text Color
-input color    DateTextColor = clrGray;                // Date Text Color
 input color    ProfitTextColor = clrBlue;              // Profit Text Color
 input color    LossTextColor = clrRed;                 // Loss Text Color
 input color    BreakevenColor = clrGold;               // Breakeven Color
-input color    CurrentDayColor = C'200,200,200';       // Current Day Background Color
+input color    CurrentDayColor = clrLightGray;       // Current Day Background
+input color    WeekTotalColor = clrPurple;             // Week Total Color
 
-sinput string  s5 = "=== ADVANCED SETTINGS ===";       // ────────────────────
+sinput string  s5 = "=== ADVANCED ===";
 input bool     ShowZeroDays = true;                    // Show Days with Zero P&L
 input double   MinPnLToShow = 1;                       // Minimum P&L to Display
 input int      DecimalPlaces = 0;                      // Decimal Places for P&L
 input bool     ExcludeDepositsWithdrawals = true;      // Exclude Deposits/Withdrawals
+input int      XDistance = 0;                          // Distance from Left/Right Edge
+input int      YDistance = 0;                          // Distance from Top/Bottom Edge
 
 //--- Global variables
 string prefix = "PnL_Cal_";
-int display_month, display_year;
-double daily_pnl[];
+int display_month, display_year, current_day = 0;
+int calendar_columns, cell_height, header_height, title_height;
+double daily_pnl[], weekly_totals[], month_total = 0;
 datetime month_start, month_end;
-int current_day = 0;
-int calendar_columns = 7; // Auto-calculated based on ShowWeekends
-double current_open_pnl = 0.0;
 
 //+------------------------------------------------------------------+
-//| Custom indicator initialization function                         |
+//| Initialization                                                   |
 //+------------------------------------------------------------------+
 int OnInit()
   {
-//--- Set auto width based on weekend setting
    calendar_columns = ShowWeekends ? 7 : 5;
+   if(ShowWeekTotals)
+      calendar_columns++;
 
-//--- Set display period
+// Estimate text height using FontSize and font
+   uint text_width, text_height;
+   TextGetSize("123", text_width, text_height); // "Ag" gives decent height estimate
+
+   cell_height = text_height + 0;  // Add padding if needed
+   header_height = cell_height;
+   title_height = (int)(cell_height * 1.6);
+
    SetDisplayPeriod();
-
-//--- Create calendar
    CreateCalendar();
-
    return(INIT_SUCCEEDED);
   }
 
 //+------------------------------------------------------------------+
-//| Custom indicator deinitialization function                      |
+//| Deinitialization                                                |
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
   {
@@ -149,27 +116,19 @@ void OnDeinit(const int reason)
   }
 
 //+------------------------------------------------------------------+
-//| Custom indicator iteration function - Updates on every tick     |
+//| Main calculation function                                        |
 //+------------------------------------------------------------------+
-int OnCalculate(const int rates_total,
-                const int prev_calculated,
-                const datetime &time[],
-                const double &open[],
-                const double &high[],
-                const double &low[],
-                const double &close[],
-                const long &tick_volume[],
-                const long &volume[],
+int OnCalculate(const int rates_total, const int prev_calculated, const datetime &time[],
+                const double &open[], const double &high[], const double &low[],
+                const double &close[], const long &tick_volume[], const long &volume[],
                 const int &spread[])
   {
-// Update calendar on every tick
    UpdateCalendar();
-
    return(rates_total);
   }
 
 //+------------------------------------------------------------------+
-//| Set display period based on inputs                              |
+//| Set display period                                              |
 //+------------------------------------------------------------------+
 void SetDisplayPeriod()
   {
@@ -183,23 +142,13 @@ void SetDisplayPeriod()
    else
       current_day = 0;
 
-// Set month
-   if(MonthToShow == MONTH_CURRENT)
-      display_month = dt.mon;
-   else
-      display_month = (int)MonthToShow;
-
-// Set year
-   if(YearToShow == YEAR_CURRENT)
-      display_year = dt.year;
-   else
-      display_year = (int)YearToShow;
+// Set month and year
+   display_month = (MonthToShow == MONTH_CURRENT) ? dt.mon : (int)MonthToShow;
+   display_year = (YearToShow == YEAR_CURRENT) ? dt.year : (int)YearToShow;
 
 // Calculate month boundaries
    month_start = StringToTime(StringFormat("%04d.%02d.01", display_year, display_month));
-
-   int next_month = display_month + 1;
-   int next_year = display_year;
+   int next_month = display_month + 1, next_year = display_year;
    if(next_month > 12)
      {
       next_month = 1;
@@ -209,221 +158,192 @@ void SetDisplayPeriod()
   }
 
 //+------------------------------------------------------------------+
-//| Get calendar dimensions based on size setting                   |
+//| Calculate current open P&L including today's closed trades      |
 //+------------------------------------------------------------------+
-void GetCalendarDimensions(int &cell_width, int &cell_height, int &header_height, int &title_height)
+double CalculateTodaysTotalPnL()
   {
-   switch(CalendarSize)
-     {
-      case SIZE_NORMAL:
-         cell_width = 70;
-         cell_height = 25;
-         header_height = 25; // Same as cell height for seamless connection
-         title_height = 40;
-         break;
-      case SIZE_COMPACT:
-         cell_width = 50;
-         cell_height = 18;
-         header_height = 18; // Same as cell height for seamless connection
-         title_height = 30;
-         break;
-      case SIZE_TINY:
-         cell_width = 35;
-         cell_height = 14;
-         header_height = 14; // Same as cell height for seamless connection
-         title_height = 22;
-         break;
-     }
-  }
+   double total_pnl = 0.0;
+   datetime today_start = StringToTime(TimeToString(TimeCurrent(), TIME_DATE));
+   datetime today_end = today_start + 86400 - 1; // End of today
 
-//+------------------------------------------------------------------+
-//| Get font name based on selection                                |
-//+------------------------------------------------------------------+
-string GetFontName()
-  {
-   switch(FontType)
+// Get today's closed trades
+   if(HistorySelect(today_start, today_end))
      {
-      case FONT_CALIBRI:
-         return "Calibri";
-      case FONT_COURIER:
-         return "Courier New";
-      case FONT_COURIER_NEW:
-         return "Courier New";
-      case FONT_ARIAL:
-         return "Arial";
-      case FONT_TAHOMA:
-         return "Tahoma";
-      case FONT_VERDANA:
-         return "Verdana";
-      default:
-         return "Calibri";
-     }
-  }
-
-//+------------------------------------------------------------------+
-//| Calculate current open P&L                                      |
-//+------------------------------------------------------------------+
-double CalculateOpenPnL()
-  {
-   double open_pnl = 0.0;
-
-   for(int i = 0; i < PositionsTotal(); i++)
-     {
-      string symbol = PositionGetSymbol(i);
-      if(symbol != "")
+      int deals_total = HistoryDealsTotal();
+      for(int i = 0; i < deals_total; i++)
         {
-         if(PositionSelectByTicket(PositionGetTicket(symbol)))
+         ulong ticket = HistoryDealGetTicket(i);
+         if(ticket == 0)
+            continue;
+
+         if(ExcludeDepositsWithdrawals)
            {
-            open_pnl += PositionGetDouble(POSITION_PROFIT) +
-                        PositionGetDouble(POSITION_SWAP);
+            ENUM_DEAL_TYPE deal_type = (ENUM_DEAL_TYPE)HistoryDealGetInteger(ticket, DEAL_TYPE);
+            if(deal_type == DEAL_TYPE_BALANCE)
+               continue;
+           }
+
+         total_pnl += HistoryDealGetDouble(ticket, DEAL_PROFIT) +
+                      HistoryDealGetDouble(ticket, DEAL_SWAP) +
+                      HistoryDealGetDouble(ticket, DEAL_COMMISSION);
+        }
+     }
+
+// Add current open positions P&L
+   if(IncludeOpenPnL)
+     {
+      for(int i = 0; i < PositionsTotal(); i++)
+        {
+         if(PositionSelectByTicket(PositionGetTicket(i)))
+           {
+            total_pnl += PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
            }
         }
      }
 
-   return open_pnl;
+   return total_pnl;
   }
 
 //+------------------------------------------------------------------+
-//| Create perfect aligned table calendar                           |
+//| Create calendar structure                                        |
 //+------------------------------------------------------------------+
 void CreateCalendar()
   {
    DeleteAllObjects();
 
-   int CELL_WIDTH, CELL_HEIGHT, HEADER_HEIGHT, TITLE_HEIGHT;
-   GetCalendarDimensions(CELL_WIDTH, CELL_HEIGHT, HEADER_HEIGHT, TITLE_HEIGHT);
-
    const int BORDER_WIDTH = 2;
-   const int TABLE_WIDTH = CELL_WIDTH * calendar_columns;
-   const int TABLE_HEIGHT = HEADER_HEIGHT + CELL_HEIGHT * 7; // No gap between header and table
+   const int TABLE_WIDTH = CellWidth * calendar_columns;
+   const int TABLE_HEIGHT = header_height + cell_height * 7;
    const int TOTAL_WIDTH = TABLE_WIDTH + (BORDER_WIDTH * 2);
-   const int TOTAL_HEIGHT = TITLE_HEIGHT + TABLE_HEIGHT + (BORDER_WIDTH * 2);
+   const int TOTAL_HEIGHT = title_height + TABLE_HEIGHT + (BORDER_WIDTH * 2);
 
-// Calculate position
    int x, y;
    CalculatePosition(x, y, TOTAL_WIDTH, TOTAL_HEIGHT);
 
-// Set Z-order based on draw mode
-   int z_order = (DrawMode == DRAW_BACKGROUND) ? 0 : 1;
-
-// Create main calendar background
+// Main background
    CreateRectangle(prefix + "MainBG", x, y, x + TOTAL_WIDTH, y + TOTAL_HEIGHT,
-                   BackgroundColor, BorderColor, BORDER_WIDTH, z_order);
+                   BackgroundColor, BorderColor, BORDER_WIDTH);
 
-// Create title background
+// Title background
    CreateRectangle(prefix + "TitleBG", x + BORDER_WIDTH, y + BORDER_WIDTH,
-                   x + TOTAL_WIDTH - BORDER_WIDTH, y + TITLE_HEIGHT,
-                   HeaderBackgroundColor, HeaderBorderColor, 1, z_order);
+                   x + TOTAL_WIDTH - BORDER_WIDTH, y + title_height,
+                   HeaderBgColor, BorderColor, 1);
 
-// Create month/year header
+// Month header
    string month_names[] = {"", "January", "February", "March", "April", "May", "June",
                            "July", "August", "September", "October", "November", "December"
                           };
    string header_text = month_names[display_month] + " " + IntegerToString(display_year);
 
-   int header_font_size = FontSize + (CalendarSize == SIZE_TINY ? 2 : 3);
-   CreateLabel(prefix + "Header", header_text, x + TOTAL_WIDTH/2, y + TITLE_HEIGHT/2,
-               header_font_size, HeaderTextColor, ANCHOR_CENTER, GetFontName(), z_order);
+   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 20 : TOTAL_WIDTH/2),
+               y + title_height/2, FontSize + 3, HeaderTextColor,
+               ShowMonthTotal ? ANCHOR_LEFT : ANCHOR_CENTER);
 
-// Create day headers with perfect alignment (no gap)
+// Day headers
    string day_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
    string business_days[] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
 
    int table_start_x = x + BORDER_WIDTH;
-   int table_start_y = y + TITLE_HEIGHT + BORDER_WIDTH; // No gap here
+   int table_start_y = y + title_height + BORDER_WIDTH;
+   int cols = ShowWeekends ? 7 : 5;
 
-   for(int i = 0; i < calendar_columns; i++)
+   for(int i = 0; i < cols; i++)
      {
-      string day_name;
-      if(ShowWeekends)
-         day_name = day_names[i];
-      else
-         day_name = business_days[i];
+      string day_name = ShowWeekends ? day_names[i] : business_days[i];
 
-      // Create day header background - seamlessly connected to table
       CreateRectangle(prefix + "DayHeaderBG_" + IntegerToString(i),
-                      table_start_x + i * CELL_WIDTH, table_start_y,
-                      table_start_x + (i + 1) * CELL_WIDTH, table_start_y + HEADER_HEIGHT,
-                      HeaderBackgroundColor, ShowCellBorders ? HeaderBorderColor : clrNONE, 1, z_order);
+                      table_start_x + i * CellWidth, table_start_y,
+                      table_start_x + (i + 1) * CellWidth, table_start_y + header_height,
+                      HeaderBgColor, BorderColor, 1);
 
       CreateLabel(prefix + "DayHeader_" + IntegerToString(i), day_name,
-                  table_start_x + i * CELL_WIDTH + CELL_WIDTH/2, table_start_y + HEADER_HEIGHT/2,
-                  FontSize, HeaderTextColor, ANCHOR_CENTER, GetFontName(), z_order);
+                  table_start_x + i * CellWidth + CellWidth/2, table_start_y + header_height/2,
+                  FontSize, HeaderTextColor, ANCHOR_CENTER);
      }
 
-// Fill calendar with perfectly aligned dates
-   FillCalendarDates(table_start_x, table_start_y + HEADER_HEIGHT, CELL_WIDTH, CELL_HEIGHT, z_order);
+// Week total header
+   if(ShowWeekTotals)
+     {
+      CreateRectangle(prefix + "WeekHeaderBG",
+                      table_start_x + cols * CellWidth, table_start_y,
+                      table_start_x + (cols + 1) * CellWidth, table_start_y + header_height,
+                      HeaderBgColor, BorderColor, 1);
+
+      CreateLabel(prefix + "WeekHeader", "Week",
+                  table_start_x + cols * CellWidth + CellWidth/2, table_start_y + header_height/2,
+                  FontSize, HeaderTextColor, ANCHOR_CENTER);
+     }
+
+   FillCalendarDates(table_start_x, table_start_y + header_height);
   }
 
 //+------------------------------------------------------------------+
-//| Fill calendar with dates and P&L data                           |
+//| Fill calendar with dates                                        |
 //+------------------------------------------------------------------+
-void FillCalendarDates(int start_x, int start_y, int cell_width, int cell_height, int z_order)
+void FillCalendarDates(int start_x, int start_y)
   {
    MqlDateTime dt;
    TimeToStruct(month_start, dt);
 
    int days_in_month = GetDaysInMonth(display_month, display_year);
    int first_day_of_week = dt.day_of_week;
+   int cols = ShowWeekends ? 7 : 5;
 
-// Adjust first day for business days only
+// Adjust first day for business days
    if(!ShowWeekends)
      {
-      first_day_of_week = (first_day_of_week == 0) ? 4 : first_day_of_week - 1; // Sunday = 4, Monday = 0
+      first_day_of_week = (first_day_of_week == 0) ? 4 : first_day_of_week - 1;
       if(first_day_of_week > 4)
          first_day_of_week = 0;
      }
 
-// Create perfectly aligned date cells
+// Create date cells
    int day_counter = 1;
    for(int week = 0; week < 7; week++)
      {
-      for(int day_col = 0; day_col < calendar_columns; day_col++)
+      for(int day_col = 0; day_col < cols; day_col++)
         {
-         int cell_x = start_x + day_col * cell_width;
+         int cell_x = start_x + day_col * CellWidth;
          int cell_y = start_y + week * cell_height;
 
-         // Determine if this cell should have a date
-         bool should_show_date = false;
-         if(week == 0 && day_col >= first_day_of_week)
-            should_show_date = true;
-         else
-            if(week > 0 && day_counter <= days_in_month)
-               should_show_date = true;
+         bool should_show_date = (week == 0 && day_col >= first_day_of_week) ||
+                                 (week > 0 && day_counter <= days_in_month);
 
          if(should_show_date && day_counter <= days_in_month)
            {
-            // Check if this is the current day
             bool is_current_day = (HighlightCurrentDay && day_counter == current_day);
             color bg_color = is_current_day ? CurrentDayColor : BackgroundColor;
 
-            // Create cell background with perfect alignment
-            color border_color = (ShowCellBorders || is_current_day) ? BorderColor : clrNONE;
-            int border_width = (ShowCellBorders || is_current_day) ? 1 : 0;
-
             CreateRectangle(prefix + "Cell_" + IntegerToString(day_counter),
-                            cell_x, cell_y, cell_x + cell_width, cell_y + cell_height,
-                            bg_color, border_color, border_width, z_order);
+                            cell_x, cell_y, cell_x + CellWidth, cell_y + cell_height,
+                            bg_color, BorderColor, is_current_day ? 2 : 1);
 
-            // Add date number if enabled
             if(ShowDates)
               {
                CreateLabel(prefix + "Date_" + IntegerToString(day_counter),
-                           IntegerToString(day_counter),
-                           cell_x + 3, cell_y + 2,
-                           FontSize - 1, DateTextColor, ANCHOR_LEFT_UPPER, GetFontName(), z_order);
+                           IntegerToString(day_counter), cell_x + 3, cell_y + 2,
+                           FontSize - 1, clrGray, ANCHOR_LEFT_UPPER);
               }
 
             day_counter++;
            }
          else
            {
-            // Create empty cell for perfect table alignment
             CreateRectangle(prefix + "EmptyCell_" + IntegerToString(week) + "_" + IntegerToString(day_col),
-                            cell_x, cell_y, cell_x + cell_width, cell_y + cell_height,
-                            BackgroundColor, ShowCellBorders ? BorderColor : clrNONE,
-                            ShowCellBorders ? 1 : 0, z_order);
+                            cell_x, cell_y, cell_x + CellWidth, cell_y + cell_height,
+                            BackgroundColor, BorderColor, 1);
            }
+        }
+
+      // Week total cells
+      if(ShowWeekTotals)
+        {
+         int week_cell_x = start_x + cols * CellWidth;
+         int week_cell_y = start_y + week * cell_height;
+
+         CreateRectangle(prefix + "WeekCell_" + IntegerToString(week),
+                         week_cell_x, week_cell_y, week_cell_x + CellWidth, week_cell_y + cell_height,
+                         BackgroundColor, BorderColor, 1);
         }
 
       if(day_counter > days_in_month)
@@ -432,32 +352,44 @@ void FillCalendarDates(int start_x, int start_y, int cell_width, int cell_height
   }
 
 //+------------------------------------------------------------------+
-//| Update calendar with current P&L data                           |
+//| Update calendar with P&L data                                   |
 //+------------------------------------------------------------------+
 void UpdateCalendar()
   {
    CalculateDailyPnL();
 
-// Get current open P&L if enabled
-   if(IncludeOpenPnL)
-      current_open_pnl = CalculateOpenPnL();
+   int days_in_month = GetDaysInMonth(display_month, display_year);
+   int cols = ShowWeekends ? 7 : 5;
 
-   int CELL_WIDTH, CELL_HEIGHT, HEADER_HEIGHT, TITLE_HEIGHT;
-   GetCalendarDimensions(CELL_WIDTH, CELL_HEIGHT, HEADER_HEIGHT, TITLE_HEIGHT);
-
+// Calculate positions
    const int BORDER_WIDTH = 2;
-   const int TOTAL_WIDTH = CELL_WIDTH * calendar_columns + (BORDER_WIDTH * 2);
-   const int TOTAL_HEIGHT = TITLE_HEIGHT + HEADER_HEIGHT + CELL_HEIGHT * 7 + (BORDER_WIDTH * 2);
+   const int TOTAL_WIDTH = CellWidth * calendar_columns + (BORDER_WIDTH * 2);
+   const int TOTAL_HEIGHT = title_height + header_height + cell_height * 7 + (BORDER_WIDTH * 2);
 
    int x, y;
    CalculatePosition(x, y, TOTAL_WIDTH, TOTAL_HEIGHT);
 
+   int table_start_x = x + BORDER_WIDTH;
+   int table_start_y = y + title_height + BORDER_WIDTH + header_height;
+
+// Update month total in header
+   if(ShowMonthTotal)
+     {
+      string month_total_text = "Total: " + DoubleToString(month_total, DecimalPlaces);
+      color total_color = (month_total > 0) ? ProfitTextColor :
+                          (month_total < 0) ? LossTextColor : BreakevenColor;
+
+      ObjectDelete(0, prefix + "MonthTotal");
+      CreateLabel(prefix + "MonthTotal", month_total_text,
+                  x + TOTAL_WIDTH - 20, y + title_height/2,
+                  FontSize + 1, total_color, ANCHOR_RIGHT);
+     }
+
+// Update daily P&L
    MqlDateTime dt;
    TimeToStruct(month_start, dt);
    int first_day_of_week = dt.day_of_week;
-   int days_in_month = GetDaysInMonth(display_month, display_year);
 
-// Adjust first day for business days only
    if(!ShowWeekends)
      {
       first_day_of_week = (first_day_of_week == 0) ? 4 : first_day_of_week - 1;
@@ -465,30 +397,31 @@ void UpdateCalendar()
          first_day_of_week = 0;
      }
 
-   int table_start_x = x + BORDER_WIDTH;
-   int table_start_y = y + TITLE_HEIGHT + BORDER_WIDTH + HEADER_HEIGHT;
-   int z_order = (DrawMode == DRAW_BACKGROUND) ? 0 : 1;
+// Calculate weekly totals
+   if(ShowWeekTotals)
+     {
+      ArrayResize(weekly_totals, 7);
+      ArrayInitialize(weekly_totals, 0.0);
+     }
 
-// Update P&L labels
    int day_counter = 1;
    for(int week = 0; week < 7; week++)
      {
-      for(int day_col = 0; day_col < calendar_columns; day_col++)
+      for(int day_col = 0; day_col < cols; day_col++)
         {
-         bool should_show_date = false;
-         if(week == 0 && day_col >= first_day_of_week)
-            should_show_date = true;
-         else
-            if(week > 0 && day_counter <= days_in_month)
-               should_show_date = true;
+         bool should_show_date = (week == 0 && day_col >= first_day_of_week) ||
+                                 (week > 0 && day_counter <= days_in_month);
 
          if(should_show_date && day_counter <= days_in_month && day_counter <= ArraySize(daily_pnl))
            {
             double pnl = daily_pnl[day_counter - 1];
 
-            // Add current open P&L to today's total if enabled
-            if(IncludeOpenPnL && day_counter == current_day)
-               pnl += current_open_pnl;
+            // Add today's total P&L (closed + open)
+            if(day_counter == current_day)
+               pnl = CalculateTodaysTotalPnL();
+
+            if(ShowWeekTotals)
+               weekly_totals[week] += pnl;
 
             if(MathAbs(pnl) >= MinPnLToShow || ShowZeroDays)
               {
@@ -496,21 +429,37 @@ void UpdateCalendar()
                color text_color = (pnl > 0) ? ProfitTextColor :
                                   (pnl < 0) ? LossTextColor : BreakevenColor;
 
-               int cell_x = table_start_x + day_col * CELL_WIDTH;
-               int cell_y = table_start_y + week * CELL_HEIGHT;
-
-               // Position PnL text based on whether dates are shown
-               int text_y = ShowDates ? cell_y + CELL_HEIGHT - 3 : cell_y + CELL_HEIGHT/2;
+               int cell_x = table_start_x + day_col * CellWidth;
+               int cell_y = table_start_y + week * cell_height;
+               int text_y = ShowDates ? cell_y + cell_height - 3 : cell_y + cell_height/2;
                ENUM_ANCHOR_POINT anchor = ShowDates ? ANCHOR_LOWER : ANCHOR_CENTER;
 
                ObjectDelete(0, prefix + "PnL_" + IntegerToString(day_counter));
-               CreateLabel(prefix + "PnL_" + IntegerToString(day_counter),
-                           pnl_text,
-                           cell_x + CELL_WIDTH/2, text_y,
-                           FontSize, text_color, anchor, GetFontName(), z_order);
+               CreateLabel(prefix + "PnL_" + IntegerToString(day_counter), pnl_text,
+                           cell_x + CellWidth/2, text_y, FontSize, text_color, anchor);
               }
 
             day_counter++;
+           }
+        }
+
+      // Update week totals
+      if(ShowWeekTotals && week < ArraySize(weekly_totals))
+        {
+         double week_total = weekly_totals[week];
+         if(MathAbs(week_total) >= MinPnLToShow || ShowZeroDays)
+           {
+            string week_text = DoubleToString(week_total, DecimalPlaces);
+            color week_color = (week_total > 0) ? ProfitTextColor :
+                               (week_total < 0) ? LossTextColor : WeekTotalColor;
+
+            int week_cell_x = table_start_x + cols * CellWidth;
+            int week_cell_y = table_start_y + week * cell_height;
+
+            ObjectDelete(0, prefix + "WeekTotal_" + IntegerToString(week));
+            CreateLabel(prefix + "WeekTotal_" + IntegerToString(week), week_text,
+                        week_cell_x + CellWidth/2, week_cell_y + cell_height/2,
+                        FontSize, week_color, ANCHOR_CENTER);
            }
         }
 
@@ -522,15 +471,15 @@ void UpdateCalendar()
   }
 
 //+------------------------------------------------------------------+
-//| Calculate daily P&L from account history                        |
+//| Calculate daily P&L from history                                |
 //+------------------------------------------------------------------+
 void CalculateDailyPnL()
   {
    int days_in_month = GetDaysInMonth(display_month, display_year);
    ArrayResize(daily_pnl, days_in_month);
    ArrayInitialize(daily_pnl, 0.0);
+   month_total = 0.0;
 
-// Request history for the month
    if(!HistorySelect(month_start, month_end))
      {
       Print("Failed to select history for period: ", month_start, " to ", month_end);
@@ -538,14 +487,12 @@ void CalculateDailyPnL()
      }
 
    int deals_total = HistoryDealsTotal();
-
    for(int i = 0; i < deals_total; i++)
      {
       ulong ticket = HistoryDealGetTicket(i);
       if(ticket == 0)
          continue;
 
-      // Exclude deposits/withdrawals if setting is enabled
       if(ExcludeDepositsWithdrawals)
         {
          ENUM_DEAL_TYPE deal_type = (ENUM_DEAL_TYPE)HistoryDealGetInteger(ticket, DEAL_TYPE);
@@ -554,9 +501,9 @@ void CalculateDailyPnL()
         }
 
       datetime deal_time = (datetime)HistoryDealGetInteger(ticket, DEAL_TIME);
-      double profit = HistoryDealGetDouble(ticket, DEAL_PROFIT);
-      double swap = HistoryDealGetDouble(ticket, DEAL_SWAP);
-      double commission = HistoryDealGetDouble(ticket, DEAL_COMMISSION);
+      double profit = HistoryDealGetDouble(ticket, DEAL_PROFIT) +
+                      HistoryDealGetDouble(ticket, DEAL_SWAP) +
+                      HistoryDealGetDouble(ticket, DEAL_COMMISSION);
 
       MqlDateTime deal_dt;
       TimeToStruct(deal_time, deal_dt);
@@ -566,14 +513,30 @@ void CalculateDailyPnL()
          int day_index = deal_dt.day - 1;
          if(day_index >= 0 && day_index < days_in_month)
            {
-            daily_pnl[day_index] += profit + swap + commission;
+            daily_pnl[day_index] += profit;
+            month_total += profit;
            }
         }
+     }
+
+// Add today's open P&L to month total if it's current month
+   if(current_day > 0 && IncludeOpenPnL)
+     {
+      double open_pnl = 0.0;
+      for(int i = 0; i < PositionsTotal(); i++)
+        {
+         string symbol = PositionGetSymbol(i);
+         if(symbol != "" && PositionSelectByTicket(PositionGetTicket(symbol)))
+           {
+            open_pnl += PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP);
+           }
+        }
+      month_total += open_pnl;
      }
   }
 
 //+------------------------------------------------------------------+
-//| Calculate calendar position based on settings                   |
+//| Helper functions                                                 |
 //+------------------------------------------------------------------+
 void CalculatePosition(int &x, int &y, int width, int height)
   {
@@ -602,11 +565,10 @@ void CalculatePosition(int &x, int &y, int width, int height)
   }
 
 //+------------------------------------------------------------------+
-//| Create text label with Z-order support                          |
+//|                                                                  |
 //+------------------------------------------------------------------+
-void CreateLabel(string name, string text, int x, int y, int font_size,
-                 color clr, ENUM_ANCHOR_POINT anchor = ANCHOR_LEFT_UPPER,
-                 string font = "Calibri", int z_order = 1)
+void CreateLabel(string name, string text, int x, int y, int font_size, color clr,
+                 ENUM_ANCHOR_POINT anchor = ANCHOR_LEFT_UPPER, string font = "Calibri")
   {
    ObjectDelete(0, name);
    ObjectCreate(0, name, OBJ_LABEL, 0, 0, 0);
@@ -619,14 +581,13 @@ void CreateLabel(string name, string text, int x, int y, int font_size,
    ObjectSetInteger(0, name, OBJPROP_ANCHOR, anchor);
    ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
-   ObjectSetInteger(0, name, OBJPROP_ZORDER, z_order);
   }
 
 //+------------------------------------------------------------------+
-//| Create rectangle with Z-order support                           |
+//|                                                                  |
 //+------------------------------------------------------------------+
-void CreateRectangle(string name, int x1, int y1, int x2, int y2,
-                     color bg_color, color border_color = clrNONE, int border_width = 0, int z_order = 1)
+void CreateRectangle(string name, int x1, int y1, int x2, int y2, color bg_color,
+                     color border_color = clrNONE, int border_width = 0)
   {
    ObjectDelete(0, name);
    ObjectCreate(0, name, OBJ_RECTANGLE_LABEL, 0, 0, 0);
@@ -641,45 +602,31 @@ void CreateRectangle(string name, int x1, int y1, int x2, int y2,
    ObjectSetInteger(0, name, OBJPROP_WIDTH, border_width);
    ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
    ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
-   ObjectSetInteger(0, name, OBJPROP_ZORDER, z_order);
   }
 
 //+------------------------------------------------------------------+
-//| Get days in month                                               |
+//|                                                                  |
 //+------------------------------------------------------------------+
 int GetDaysInMonth(int month, int year)
   {
    int days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-   if(month == 2 && IsLeapYear(year))
+   if(month == 2 && ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)))
       return 29;
-
    return days[month - 1];
   }
 
 //+------------------------------------------------------------------+
-//| Check if year is leap year                                      |
-//+------------------------------------------------------------------+
-bool IsLeapYear(int year)
-  {
-   return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-  }
-
-//+------------------------------------------------------------------+
-//| Delete all calendar objects                                     |
+//|                                                                  |
 //+------------------------------------------------------------------+
 void DeleteAllObjects()
   {
    int total = ObjectsTotal(0, 0, OBJ_LABEL) + ObjectsTotal(0, 0, OBJ_RECTANGLE_LABEL);
-
    for(int i = total - 1; i >= 0; i--)
      {
       string name = ObjectName(0, i);
       if(StringFind(name, prefix) == 0)
-        {
          ObjectDelete(0, name);
-        }
      }
-
    ChartRedraw();
   }
+//+------------------------------------------------------------------+
