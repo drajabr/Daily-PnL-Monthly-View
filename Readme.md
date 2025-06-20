@@ -28,3 +28,7 @@ Attach to any chart and configure through input parameters.
 
 ![image](https://github.com/user-attachments/assets/4d8c8218-5c0d-4e33-aac5-b94c063505b9)
 ![image](https://github.com/user-attachments/assets/1264e0ef-f7d2-4b5a-a161-3e37ade33b45)
+
+
+> [!NOTE]  
+> The code is mostly AI generated using Claude.ai with minimal intervention by myself.
