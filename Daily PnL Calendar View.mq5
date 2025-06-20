@@ -94,13 +94,9 @@ int OnInit()
    if(ShowWeekTotals)
       calendar_columns++;
 
-// Estimate text height using FontSize and font
-   uint text_width, text_height;
-   TextGetSize("123", text_width, text_height); // "Ag" gives decent height estimate
-
-   cell_height = text_height + 0;  // Add padding if needed
+   cell_height = CellWidth/2 + 0;  // Add padding if needed
    header_height = cell_height;
-   title_height = (int)(cell_height * 1.6);
+   title_height = (int)(cell_height * 1.8);
 
    SetDisplayPeriod();
    CreateCalendar();
@@ -215,7 +211,7 @@ void CreateCalendar()
    const int TABLE_WIDTH = CellWidth * calendar_columns;
    const int TABLE_HEIGHT = header_height + cell_height * 7;
    const int TOTAL_WIDTH = TABLE_WIDTH + (BORDER_WIDTH * 2);
-   const int TOTAL_HEIGHT = title_height + TABLE_HEIGHT + (BORDER_WIDTH * 2);
+   const int TOTAL_HEIGHT = title_height + TABLE_HEIGHT + BORDER_WIDTH;
 
    int x, y;
    CalculatePosition(x, y, TOTAL_WIDTH, TOTAL_HEIGHT);
@@ -235,7 +231,7 @@ void CreateCalendar()
                           };
    string header_text = month_names[display_month] + " " + IntegerToString(display_year);
 
-   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 20 : TOTAL_WIDTH/2),
+   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 10 : TOTAL_WIDTH/2),
                y + title_height/2, FontSize + 3, HeaderTextColor,
                ShowMonthTotal ? ANCHOR_LEFT : ANCHOR_CENTER);
 
@@ -244,7 +240,7 @@ void CreateCalendar()
    string business_days[] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
 
    int table_start_x = x + BORDER_WIDTH;
-   int table_start_y = y + title_height + BORDER_WIDTH;
+   int table_start_y = y + title_height;
    int cols = ShowWeekends ? 7 : 5;
 
    for(int i = 0; i < cols; i++)
@@ -269,7 +265,7 @@ void CreateCalendar()
                       table_start_x + (cols + 1) * CellWidth, table_start_y + header_height,
                       HeaderBgColor, BorderColor, 1);
 
-      CreateLabel(prefix + "WeekHeader", "Week",
+      CreateLabel(prefix + "WeekHeader", "Total",
                   table_start_x + cols * CellWidth + CellWidth/2, table_start_y + header_height/2,
                   FontSize, HeaderTextColor, ANCHOR_CENTER);
      }
@@ -381,8 +377,8 @@ void UpdateCalendar()
 
       ObjectDelete(0, prefix + "MonthTotal");
       CreateLabel(prefix + "MonthTotal", month_total_text,
-                  x + TOTAL_WIDTH - 20, y + title_height/2,
-                  FontSize + 1, total_color, ANCHOR_RIGHT);
+                  x + TOTAL_WIDTH - 10, y + title_height/2,
+                  FontSize + 3, total_color, ANCHOR_RIGHT);
      }
 
 // Update daily P&L
