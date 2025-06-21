@@ -43,7 +43,7 @@ enum ENUM_YEAR_SELECTION
 
 //--- Input parameters
 sinput string  s1 = "=== DISPLAY SETTINGS ===";
-input ENUM_CALENDAR_POSITION CalendarPosition = POS_TOP_LEFT; // Calendar Position
+input ENUM_CALENDAR_POSITION CalendarPosition = POS_BOTTOM_RIGHT; // Calendar Position
 input int      CellWidth = 35;                          // Cell Width (Height auto-calculated)
 input int      FontSize = 8;                            // Font Size
 
@@ -61,12 +61,12 @@ input bool     IncludeOpenPnL = true;                  // Include Currently Open
 
 sinput string  s4 = "=== COLORS ===";
 input color    BackgroundColor = clrWhite;       // Background Color
-input color    BorderColor = clrGray;           // Border Color
+input color    BorderColor = clrDarkGray;           // Border Color
 input color    HeaderBgColor = clrLightGray;         // Header Background
 input color    HeaderTextColor = clrBlack;             // Header Text Color
 input color    ProfitTextColor = clrBlue;              // Profit Text Color
 input color    LossTextColor = clrRed;                 // Loss Text Color
-input color    BreakevenColor = clrGold;               // Breakeven Color
+input color    BreakevenColor = clrDarkGray;               // Breakeven Color
 input color    CurrentDayColor = clrLightGray;       // Current Day Background
 input color    WeekTotalColor = clrPurple;             // Week Total Color
 
@@ -75,8 +75,8 @@ input bool     ShowZeroDays = true;                    // Show Days with Zero P&
 input double   MinPnLToShow = 1;                       // Minimum P&L to Display
 input int      DecimalPlaces = 0;                      // Decimal Places for P&L
 input bool     ExcludeDepositsWithdrawals = true;      // Exclude Deposits/Withdrawals
-input int      XDistance = 0;                          // Distance from Left/Right Edge
-input int      YDistance = 0;                          // Distance from Top/Bottom Edge
+input int      XDistance = -1;                          // Distance from Left/Right Edge
+input int      YDistance = -1;                          // Distance from Top/Bottom Edge
 
 //--- Global variables
 string prefix = "PnL_Cal_";
@@ -93,6 +93,10 @@ int OnInit()
    calendar_columns = ShowWeekends ? 7 : 5;
    if(ShowWeekTotals)
       calendar_columns++;
+
+// Estimate text height using FontSize and font
+   //uint text_width, text_height;
+   //TextGetSize("123", text_width, text_height); // "Ag" gives decent height estimate
 
    cell_height = CellWidth/2 + 0;  // Add padding if needed
    header_height = cell_height;
@@ -207,7 +211,7 @@ void CreateCalendar()
   {
    DeleteAllObjects();
 
-   const int BORDER_WIDTH = 2;
+   const int BORDER_WIDTH = 1;
    const int TABLE_WIDTH = CellWidth * calendar_columns;
    const int TABLE_HEIGHT = header_height + cell_height * 7;
    const int TOTAL_WIDTH = TABLE_WIDTH + (BORDER_WIDTH * 2);
@@ -231,7 +235,7 @@ void CreateCalendar()
                           };
    string header_text = month_names[display_month] + " " + IntegerToString(display_year);
 
-   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 10 : TOTAL_WIDTH/2),
+   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 8 : TOTAL_WIDTH/2),
                y + title_height/2, FontSize + 3, HeaderTextColor,
                ShowMonthTotal ? ANCHOR_LEFT : ANCHOR_CENTER);
 
@@ -358,7 +362,7 @@ void UpdateCalendar()
    int cols = ShowWeekends ? 7 : 5;
 
 // Calculate positions
-   const int BORDER_WIDTH = 2;
+   const int BORDER_WIDTH = 1;
    const int TOTAL_WIDTH = CellWidth * calendar_columns + (BORDER_WIDTH * 2);
    const int TOTAL_HEIGHT = title_height + header_height + cell_height * 7 + (BORDER_WIDTH * 2);
 
@@ -377,7 +381,7 @@ void UpdateCalendar()
 
       ObjectDelete(0, prefix + "MonthTotal");
       CreateLabel(prefix + "MonthTotal", month_total_text,
-                  x + TOTAL_WIDTH - 10, y + title_height/2,
+                  x + TOTAL_WIDTH - 8, y + title_height/2,
                   FontSize + 3, total_color, ANCHOR_RIGHT);
      }
 
