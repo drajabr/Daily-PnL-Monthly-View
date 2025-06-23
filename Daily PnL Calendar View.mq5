@@ -43,7 +43,7 @@ enum ENUM_YEAR_SELECTION
 
 //--- Input parameters
 sinput string  s1 = "=== DISPLAY SETTINGS ===";
-input ENUM_CALENDAR_POSITION CalendarPosition = POS_BOTTOM_RIGHT; // Calendar Position
+input ENUM_CALENDAR_POSITION CalendarPosition = POS_BOTTOM_LEFT; // Calendar Position
 input int      CellWidth = 35;                          // Cell Width (Height auto-calculated)
 input int      FontSize = 8;                            // Font Size
 
@@ -75,8 +75,8 @@ input bool     ShowZeroDays = true;                    // Show Days with Zero P&
 input double   MinPnLToShow = 1;                       // Minimum P&L to Display
 input int      DecimalPlaces = 0;                      // Decimal Places for P&L
 input bool     ExcludeDepositsWithdrawals = true;      // Exclude Deposits/Withdrawals
-input int      XDistance = -1;                          // Distance from Left/Right Edge
-input int      YDistance = -1;                          // Distance from Top/Bottom Edge
+input int      XDistance = 0;                          // Distance from Left/Right Edge
+input int      YDistance = 0;                          // Distance from Top/Bottom Edge
 
 //--- Global variables
 string prefix = "PnL_Cal_";
@@ -298,7 +298,7 @@ void CreateNavigationArrow(string name, int x, int y, bool is_left)
    ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
    ObjectSetInteger(0, name, OBJPROP_XSIZE, arrow_width);
    ObjectSetInteger(0, name, OBJPROP_YSIZE, arrow_height);
-   ObjectSetString(0, name, OBJPROP_TEXT, is_left ? "<<" : ">>");
+   ObjectSetString(0, name, OBJPROP_TEXT, is_left ? "<" : ">");
    ObjectSetString(0, name, OBJPROP_FONT, "Calibri");
    ObjectSetInteger(0, name, OBJPROP_FONTSIZE, FontSize + 2);
    ObjectSetInteger(0, name, OBJPROP_COLOR, HeaderTextColor);
