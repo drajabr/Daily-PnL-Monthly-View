@@ -84,6 +84,8 @@ int display_month, display_year, current_day = 0;
 int calendar_columns, cell_height, header_height, title_height;
 double daily_pnl[], weekly_totals[], month_total = 0;
 datetime month_start, month_end;
+int arrow_width = 20;
+int arrow_height = 20;
 
 //+------------------------------------------------------------------+
 //| Initialization                                                   |
@@ -205,7 +207,7 @@ double CalculateTodaysTotalPnL()
   }
 
 //+------------------------------------------------------------------+
-//| Create calendar structure                                        |
+//| MODIFIED: Update CreateCalendar function - Add arrow creation   |
 //+------------------------------------------------------------------+
 void CreateCalendar()
   {
@@ -220,25 +222,32 @@ void CreateCalendar()
    int x, y;
    CalculatePosition(x, y, TOTAL_WIDTH, TOTAL_HEIGHT);
 
-// Main background
+   // Main background
    CreateRectangle(prefix + "MainBG", x, y, x + TOTAL_WIDTH, y + TOTAL_HEIGHT,
                    BackgroundColor, BorderColor, BORDER_WIDTH);
 
-// Title background
+   // Title background
    CreateRectangle(prefix + "TitleBG", x + BORDER_WIDTH, y + BORDER_WIDTH,
                    x + TOTAL_WIDTH - BORDER_WIDTH, y + title_height,
                    HeaderBgColor, BorderColor, 1);
 
-// Month header
+   // NEW: Create navigation arrows
+   int arrow_y = y + BORDER_WIDTH + (title_height - arrow_height) / 2;
+   int left_arrow_x = x + BORDER_WIDTH + 5;
+   int right_arrow_x = x + TOTAL_WIDTH - BORDER_WIDTH - arrow_width - 5;
+   
+   CreateNavigationArrow(prefix + "LeftArrow", left_arrow_x, arrow_y, true);
+   CreateNavigationArrow(prefix + "RightArrow", right_arrow_x, arrow_y, false);
+
+   // Month header
    string month_names[] = {"", "January", "February", "March", "April", "May", "June",
                            "July", "August", "September", "October", "November", "December"
                           };
    string header_text = month_names[display_month] + " " + IntegerToString(display_year);
 
-   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? 8 : TOTAL_WIDTH/2),
+   CreateLabel(prefix + "Header", header_text, x + (ShowMonthTotal ? left_arrow_x + arrow_width + 8 : TOTAL_WIDTH/2),
                y + title_height/2, FontSize + 3, HeaderTextColor,
                ShowMonthTotal ? ANCHOR_LEFT : ANCHOR_CENTER);
-
 // Day headers
    string day_names[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
    string business_days[] = {"Mon", "Tue", "Wed", "Thu", "Fri"};
@@ -275,6 +284,28 @@ void CreateCalendar()
      }
 
    FillCalendarDates(table_start_x, table_start_y + header_height);
+  }
+
+//+------------------------------------------------------------------+
+//| NEW: Add this function - Create navigation arrows               |
+//+------------------------------------------------------------------+
+void CreateNavigationArrow(string name, int x, int y, bool is_left)
+  {
+   ObjectDelete(0, name);
+   ObjectCreate(0, name, OBJ_BUTTON, 0, 0, 0);
+   ObjectSetInteger(0, name, OBJPROP_XDISTANCE, x);
+   ObjectSetInteger(0, name, OBJPROP_YDISTANCE, y);
+   ObjectSetInteger(0, name, OBJPROP_XSIZE, arrow_width);
+   ObjectSetInteger(0, name, OBJPROP_YSIZE, arrow_height);
+   ObjectSetString(0, name, OBJPROP_TEXT, is_left ? "<<" : ">>");
+   ObjectSetString(0, name, OBJPROP_FONT, "Calibri");
+   ObjectSetInteger(0, name, OBJPROP_FONTSIZE, FontSize + 2);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, HeaderTextColor);
+   ObjectSetInteger(0, name, OBJPROP_BGCOLOR, HeaderBgColor);
+   ObjectSetInteger(0, name, OBJPROP_BORDER_COLOR, BorderColor);
+   ObjectSetInteger(0, name, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, name, OBJPROP_HIDDEN, true);
+   ObjectSetInteger(0, name, OBJPROP_STATE, false);
   }
 
 //+------------------------------------------------------------------+
@@ -381,10 +412,10 @@ void UpdateCalendar()
 
       ObjectDelete(0, prefix + "MonthTotal");
       CreateLabel(prefix + "MonthTotal", month_total_text,
-                  x + TOTAL_WIDTH - 8, y + title_height/2,
+                  x + TOTAL_WIDTH - arrow_width - 8 - 5, y + title_height/2,  // Adjusted position
                   FontSize + 3, total_color, ANCHOR_RIGHT);
      }
-
+     
 // Update daily P&L
    MqlDateTime dt;
    TimeToStruct(month_start, dt);
@@ -629,4 +660,65 @@ void DeleteAllObjects()
      }
    ChartRedraw();
   }
+
 //+------------------------------------------------------------------+
+//| NEW: Add this function - Handle chart events                    |
+//+------------------------------------------------------------------+
+void OnChartEvent(const int id, const long &lparam, const double &dparam, const string &sparam)
+  {
+   if(id == CHARTEVENT_OBJECT_CLICK)
+     {
+      if(sparam == prefix + "LeftArrow")
+        {
+         NavigateMonth(-1);
+         ObjectSetInteger(0, prefix + "LeftArrow", OBJPROP_STATE, false);
+        }
+      else if(sparam == prefix + "RightArrow")
+        {
+         NavigateMonth(1);
+         ObjectSetInteger(0, prefix + "RightArrow", OBJPROP_STATE, false);
+        }
+     }
+  }
+
+//+------------------------------------------------------------------+
+//| NEW: Add this function - Navigate between months               |
+//+------------------------------------------------------------------+
+void NavigateMonth(int direction)
+  {
+   display_month += direction;
+   
+   if(display_month > 12)
+     {
+      display_month = 1;
+      display_year++;
+     }
+   else if(display_month < 1)
+     {
+      display_month = 12;
+      display_year--;
+     }
+   
+   // Update current day highlighting
+   datetime current = TimeCurrent();
+   MqlDateTime dt;
+   TimeToStruct(current, dt);
+   
+   if(display_month == dt.mon && display_year == dt.year)
+      current_day = dt.day;
+   else
+      current_day = 0;
+   
+   // Recalculate month boundaries
+   month_start = StringToTime(StringFormat("%04d.%02d.01", display_year, display_month));
+   int next_month = display_month + 1, next_year = display_year;
+   if(next_month > 12)
+     {
+      next_month = 1;
+      next_year++;
+     }
+   month_end = StringToTime(StringFormat("%04d.%02d.01", next_year, next_month)) - 1;
+   
+   // Recreate calendar with new month/year
+   CreateCalendar();
+  }
