@@ -4,16 +4,16 @@ Displays your daily profit/loss in a monthly calendar format on your MT5 charts.
 # Features
  * Visual Calendar: Monthly view with daily P&L values
  * Real-time Updates: Includes open position P&L
- * Customizable: 3 sizes, 4 positions, multiple fonts and colors
- * Historical View: Any month/year 2020-2030
+ * Customizable: display and font sizes, colors 4 and position on chart
+ * Historical View: Any month/year 2020-2030 with buttons to switch next/previous month in display
  * Flexible Display: Show/hide weekends, dates, borders
  * Data Control: Exclude deposits/withdrawals, set minimum P&L threshold
 
 
 # Settings
  * Calendar position (4 corners)
- * Size options (Normal/Compact/Tiny)
- * Font selection and colors
+ * Size options (cell width)
+ * Font size and colors
  * Month/year selection
  * Show current day highlighting
  * Include open positions in today's P&L
@@ -26,8 +26,9 @@ Attach to any chart and configure through input parameters.
 
 # Preview
 
-![image](https://github.com/user-attachments/assets/4d8c8218-5c0d-4e33-aac5-b94c063505b9)
-![image](https://github.com/user-attachments/assets/1264e0ef-f7d2-4b5a-a161-3e37ade33b45)
+![image](https://github.com/user-attachments/assets/2cff9690-3ea6-48ee-a2a5-de13be38e8f0)
+
+![image](https://github.com/user-attachments/assets/356cb2a1-f113-4155-8da8-16983ee50729)
 
 
 > [!NOTE]  
