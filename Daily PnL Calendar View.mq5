@@ -215,7 +215,8 @@ void CreateCalendar()
 
    const int BORDER_WIDTH = 1;
    const int TABLE_WIDTH = CellWidth * calendar_columns;
-   const int TABLE_HEIGHT = header_height + cell_height * 7;
+   int weeks_needed = CalculateWeeksInMonth();
+   const int TABLE_HEIGHT = header_height + cell_height * weeks_needed;
    const int TOTAL_WIDTH = TABLE_WIDTH + (BORDER_WIDTH * 2);
    const int TOTAL_HEIGHT = title_height + TABLE_HEIGHT + BORDER_WIDTH;
 
@@ -330,7 +331,8 @@ void FillCalendarDates(int start_x, int start_y)
 
 // Create date cells
    int day_counter = 1;
-   for(int week = 0; week < 7; week++)
+   int weeks_needed = CalculateWeeksInMonth();
+   for(int week = 0; week < weeks_needed; week++)
      {
       for(int day_col = 0; day_col < cols; day_col++)
         {
@@ -721,4 +723,29 @@ void NavigateMonth(int direction)
    
    // Recreate calendar with new month/year
    CreateCalendar();
+  }
+  
+  
+  //+------------------------------------------------------------------+
+//| NEW: Calculate actual weeks needed for the month                |
+//+------------------------------------------------------------------+
+int CalculateWeeksInMonth()
+  {
+   MqlDateTime dt;
+   TimeToStruct(month_start, dt);
+   
+   int days_in_month = GetDaysInMonth(display_month, display_year);
+   int first_day_of_week = dt.day_of_week;
+   
+   if(!ShowWeekends)
+     {
+      first_day_of_week = (first_day_of_week == 0) ? 4 : first_day_of_week - 1;
+      if(first_day_of_week > 4)
+         first_day_of_week = 0;
+     }
+   
+   int total_cells_needed = first_day_of_week + days_in_month;
+   int cols = ShowWeekends ? 7 : 5;
+   
+   return (int)MathCeil((double)total_cells_needed / cols);
   }
